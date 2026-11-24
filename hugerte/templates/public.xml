@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<hugerte name="Public" version="7">
+	<plugins>advlist autolink emoticons fullscreen help link lists table visualchars wordcount</plugins>
+	<menubar>edit view insert format</menubar>
+	<toolbar>undo redo | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link table | emoticons | fullscreen</toolbar>
+	<toolbar_mode>sliding</toolbar_mode>
+	<convert_urls>false</convert_urls>
+	<table_default_attributes>{  class: 'table table-striped table-bordered'   }</table_default_attributes>
+</hugerte>
