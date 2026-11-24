@@ -28,10 +28,10 @@ e107::css('inline','
 	   The .hugerte-media-dialog class is added by plugin.js (openMedia)
 	   to the .tox-dialog element after the dialog renders. */
 	.tox .tox-dialog.hugerte-media-dialog {
-		width: min(70vw, 1000px) !important;
-		max-width: min(70vw, 1000px) !important;
-		height: min(55vh, 650px) !important;
-		max-height: min(55vh, 650px) !important;
+		width: min(85vw, 1200px) !important;
+		max-width: min(85vw, 1200px) !important;
+		height: min(60vh, 900px) !important;
+		max-height: min(60vh, 900px) !important;
 	}
 	.hugerte-media-dialog .tox-dialog__body {
 		overflow: hidden;
