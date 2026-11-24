@@ -217,6 +217,16 @@ class hugerte_parse
 		// unbounded (61+ observed after a handful of edits).
 		$text = preg_replace('/<p[^>]*>\s*(?:&nbsp;|<br\s*\/?>)?\s*<\/p>\s*/i', '', $text);
 
+		// Convert <em> to <i> (user preference: italic = <i> not <em>).
+		// TinyMCE 6/7 schema aliases <i> to <em> during parse AND the
+		// serializer normalizes <i> back to <em>. Client-side conversion
+		// (getContent override, BeforeGetContent) is unreliable due to
+		// browser caching and TinyMCE internal code paths. This server-side
+		// conversion is the guaranteed fix: it runs on every save, after
+		// cleanHtml() has already processed the content.
+		$text = preg_replace('/<em(\s[^>]*)?\/?>/i', '<i$1>', $text);
+		$text = preg_replace('/<\/em>/i', '</i>', $text);
+
 		return $text;
 	}
 

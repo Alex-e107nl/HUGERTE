@@ -15,24 +15,27 @@ e107::css('inline','
 	.mce-tinymce.mce-fullscreen {   z-index: 1050 !important;  }
 
 	/* ── Native HugeRTE dialogs (link, image, table, …) ─────────────
-	   The skin already sets max-width:480px + width:95vw on .tox-dialog.
-	   We only add a height cap so tall dialogs do not overflow the
-	   viewport.  Do NOT override max-width here – that breaks the
-	   built-in 480px compact size. */
-	.tox .tox-dialog { max-height: 90vh !important; }
+	   Cap ALL dialogs (including width-md/width-lg variants used by
+	   the table plugin) at a compact 500px.  The skin sets 480px on
+	   the base rule, but width-md (800px) and width-lg (1200px) have
+	   higher specificity and would override it without !important. */
+	.tox .tox-dialog {
+		max-width: min(500px, 95vw) !important;
+		max-height: 90vh !important;
+	}
 
-	/* ── Media-manager dialog: large, responsive, no scrollbars ─────
+	/* ── Media-manager dialog: larger, responsive, no scrollbars ────
 	   The .hugerte-media-dialog class is added by plugin.js (openMedia)
-	   to the .tox-dialog element after the dialog renders (via the
-	   .hugerte-media-host div + closest method). */
-	.tox-dialog.hugerte-media-dialog {
-		width: min(85vw, 1200px) !important;
-		max-width: min(85vw, 1200px) !important;
-		height: min(60vh, 900px) !important;
-		max-height: min(60vh, 900px) !important;
+	   to the .tox-dialog element after the dialog renders. */
+	.tox .tox-dialog.hugerte-media-dialog {
+		width: min(70vw, 1000px) !important;
+		max-width: min(70vw, 1000px) !important;
+		height: min(55vh, 650px) !important;
+		max-height: min(55vh, 650px) !important;
 	}
 	.hugerte-media-dialog .tox-dialog__body {
 		overflow: hidden;
+		min-height: 0;
 	}
 	.hugerte-media-dialog .tox-dialog__body-content {
 		max-height: none !important;
@@ -72,7 +75,7 @@ e107::css('inline','
 
 	/* Mobile: media dialog fills the screen */
 	@media (max-width: 768px) {
-		.tox-dialog.hugerte-media-dialog {
+		.tox .tox-dialog.hugerte-media-dialog {
 			width: 100vw !important;
 			max-width: 100vw !important;
 			height: 100vh !important;

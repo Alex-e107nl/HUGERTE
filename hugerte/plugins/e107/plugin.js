@@ -1,4 +1,4 @@
-﻿/**
+/**
  * e107 external plugin for HugeRTE (TinyMCE 6/7 API, global renamed to "hugerte").
  *
  * Registers:
@@ -72,6 +72,27 @@
 		console.log('=== HUGERTE E107 PLUGIN LOADED ===', editor.id);
 
 		// ------------------------------------------------------------------
+		// ITALIC FIX: override getContent() to convert <em> to <i>
+		// TinyMCE 6/7 schema aliases <i> to <em>. The ONLY reliable way
+		// to get <i> in the output is to convert AFTER serialization.
+		// This wraps editor.getContent() directly - every call goes through
+		// this wrapper. No events, no timing issues.
+		// ------------------------------------------------------------------
+		(function () {
+			function emToI(html) {
+				if (typeof html !== 'string' || html.indexOf('<em') === -1) return html;
+				return html.replace(/<em(\s[^>]*)?\/?>/gi, '<i$1>').replace(/<\/em>/gi, '</i>');
+			}
+			var origGetContent = editor.getContent.bind(editor);
+			editor.getContent = function (settings) {
+				var content = origGetContent(settings);
+				return emToI(content);
+			};
+			console.log('[hugerte e107] getContent() patched for em-to-i conversion, editor=' + editor.id);
+		})();
+
+
+		// ------------------------------------------------------------------
 		// STRIKETHROUGH FIX â€“ root cause
 		//
 		// Re-register the 'strikethrough' format to use <span> with
@@ -135,14 +156,21 @@
 		editor.on('BeforeGetContent', function (e) {
 			try {
 				if (e.format === 'html' || !e.format) {
-					if (typeof e.content === 'string' && e.content.indexOf('<s') !== -1) {
-						e.content = convertSToSpan(e.content);
+					if (typeof e.content === 'string') {
+						if (e.content.indexOf('<s') !== -1) {
+							e.content = convertSToSpan(e.content);
+						}
+						// Convert <em> to <i> (user preference: italic = <i> not <em>)
+						if (e.content.indexOf('<em') !== -1) {
+							e.content = e.content.replace(/<em(\s[^>]*)?\/?>/gi, '<i$1>').replace(/<\/em>/gi, '</i>');
+						}
 					}
 				}
 			} catch (err) {
-				console.warn('hugerte e107: BeforeGetContent <s>â†’<span> failed', err);
+				console.warn('hugerte e107: BeforeGetContent conversion failed', err);
 			}
 		});
+
 
 		// Synchronous same-origin AJAX for the bbcode insert dialog.
 		// Uses raw XMLHttpRequest (no jQuery dependency).
@@ -596,17 +624,24 @@
 			editor.focus();
 		}
 
-		// Save correctly if form is submitted while BBcode panel is open
+		// Save correctly if form is submitted while BBcode panel is open,
+		// and ALWAYS convert <em> to <i> (user preference: italic = <i>).
+		// SaveContent fires AFTER getContent() and the modified e.content
+		// is directly written to the form textarea - most reliable hook.
 		editor.on('SaveContent', function (e) {
-			if (bbPanel && bbPanel.isConnected && bbTa && bbTa.isConnected) {
-				try {
+			try {
+				if (bbPanel && bbPanel.isConnected && bbTa && bbTa.isConnected) {
 					var html = bbToHtml(bbTa.value);
 					if (html && html.trim()) {
 						e.content = html;
 					}
-				} catch (err) {
-					console.error('hugerte e107: BBcode SaveContent conversion failed', err);
 				}
+				// Convert <em> to <i> in the final content
+				if (typeof e.content === 'string' && e.content.indexOf('<em') !== -1) {
+					e.content = e.content.replace(/<em(\s[^>]*)?\/?>/gi, '<i$1>').replace(/<\/em>/gi, '</i>');
+				}
+			} catch (err) {
+				console.error('hugerte e107: SaveContent conversion failed', err);
 			}
 		});
 

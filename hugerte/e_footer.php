@@ -101,6 +101,14 @@ if ((e107::wysiwyg(null, true) === 'hugerte' && check_class($pref['post_html']))
 
         e107::js('footer-inline', "
 (function () {
+    /* Kill the body scrollbar inside the iframe – the page content is
+       taller than the iframe viewport and the browser shows a vertical
+       scrollbar on the right edge of the modal.  We hide it and let
+       the inner content containers handle their own scrolling. */
+    var st = document.createElement('style');
+    st.textContent = 'html { height: 100% !important; overflow: hidden !important; } body { height: 100% !important; overflow: hidden !important; }';
+    document.head.appendChild(st);
+
     /* Show the save/cancel buttons (hidden by default in image.php) */
     var btnBar = document.getElementById('media-manager-submit-buttons');
     if (btnBar) { btnBar.style.display = 'block'; }
@@ -182,9 +190,55 @@ $(function() {
     // Override TinyMCE 6/7 dialog sizing (mirrors e_header.php CSS as a safety net):
     // native dialogs keep natural size, media-manager dialog is large + responsive.
     var st = document.createElement('style');
-    st.textContent = '.tox .tox-dialog { max-height: 90vh !important; } .tox-dialog.hugerte-media-dialog { width: min(85vw, 1200px) !important; max-width: min(85vw, 1200px) !important; height: min(60vh, 900px) !important; max-height: min(60vh, 900px) !important; } .hugerte-media-dialog .tox-dialog__body { overflow: hidden; } .hugerte-media-dialog .tox-dialog__body-content { max-height: none !important; overflow: hidden !important; padding: 0 !important; } .hugerte-media-dialog .tox-dialog__body-content > * { margin: 0 !important; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; } .hugerte-media-dialog .tox-form__group { flex: 1 1 auto !important; min-height: 0; display: flex !important; flex-direction: column; overflow: hidden !important; } .hugerte-media-dialog .hugerte-media-host { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; flex-direction: column; overflow: hidden; } .hugerte-media-dialog .hugerte-media-host iframe { flex: 1 1 auto; min-height: 0; width: 100%; display: block; border: 0; } @media (max-width: 768px) { .tox-dialog.hugerte-media-dialog { width: 100vw !important; max-width: 100vw !important; height: 100vh !important; max-height: 100vh !important; } }';
+    st.textContent = '.tox .tox-dialog { max-width: min(500px, 95vw) !important; max-height: 90vh !important; } .tox .tox-dialog.hugerte-media-dialog { width: min(70vw, 1000px) !important; max-width: min(70vw, 1000px) !important; height: min(55vh, 650px) !important; max-height: min(55vh, 650px) !important; } .hugerte-media-dialog .tox-dialog__body { overflow: hidden; min-height: 0; } .hugerte-media-dialog .tox-dialog__body-content { max-height: none !important; overflow: hidden !important; padding: 0 !important; } .hugerte-media-dialog .tox-dialog__body-content > * { margin: 0 !important; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; } .hugerte-media-dialog .tox-form__group { flex: 1 1 auto !important; min-height: 0; display: flex !important; flex-direction: column; overflow: hidden !important; } .hugerte-media-dialog .hugerte-media-host { flex: 1 1 auto; min-height: 0; width: 100%; display: flex; flex-direction: column; overflow: hidden; } .hugerte-media-dialog .hugerte-media-host iframe { flex: 1 1 auto; min-height: 0; width: 100%; display: block; border: 0; } @media (max-width: 768px) { .tox .tox-dialog.hugerte-media-dialog { width: 100vw !important; max-width: 100vw !important; height: 100vh !important; max-height: 100vh !important; } }';
     document.head.appendChild(st);
 
+    // Italic fix: DIRECTLY override getContent() on each editor.
+    // This wraps the actual method - no events, no TinyMCE internals.
+    // Every call to getContent() (Source Code button, save(), autosave)
+    // goes through this wrapper and gets <em> converted to <i>.
+    (function () {
+        function emToI(html) {
+            if (typeof html !== 'string' || html.indexOf('<em') === -1) return html;
+            return html.replace(/<em(\s[^>]*)?\/?>/gi, '<i\$1>').replace(/<\/em>/gi, '</i>');
+        }
+        function patchEditor(editor) {
+            if (editor.__hugerteItalicPatched) return;
+            var origGetContent = editor.getContent;
+            editor.getContent = function (settings) {
+                var content = origGetContent.call(this, settings);
+                return emToI(content);
+            };
+            editor.__hugerteItalicPatched = true;
+            console.log('[hugerte] getContent() patched for italic fix: ' + editor.id);
+        }
+        function initFix() {
+            if (window.hugerte && hugerte.EditorManager && hugerte.EditorManager.editors.length) {
+                hugerte.EditorManager.editors.forEach(patchEditor);
+                hugerte.EditorManager.on('AddEditor', function (e) {
+                    // Small delay to ensure the editor is fully initialized
+                    setTimeout(function () { patchEditor(e.editor); }, 100);
+                });
+            } else { setTimeout(initFix, 200); }
+        }
+        initFix();
+    })();
+
+    // ULTIMATE safety net: form-level submit handler.
+    // Runs in bubble phase (AFTER TinyMCE save() synced the textarea).
+    // Directly converts <em> to <i> in all textarea values.
+    // This bypasses TinyMCE's event system entirely.
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (!form || !form.querySelectorAll) return;
+        var tas = form.querySelectorAll('textarea');
+        for (var i = 0; i < tas.length; i++) {
+            var ta = tas[i];
+            if (ta.value && ta.value.indexOf('<em') !== -1) {
+                ta.value = ta.value.replace(/<em(\s[^>]*)?\/?>/gi, '<i$1>').replace(/<\/em>/gi, '</i>');
+            }
+        }
+    }, false);
 
     $('.e-wysiwyg').each(function() {
 
