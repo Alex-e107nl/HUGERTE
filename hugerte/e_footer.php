@@ -212,16 +212,36 @@ $(function() {
             editor.__hugerteItalicPatched = true;
             console.log('[hugerte] getContent() patched for italic fix: ' + editor.id);
         }
-        function initFix() {
-            if (window.hugerte && hugerte.EditorManager && hugerte.EditorManager.editors.length) {
-                hugerte.EditorManager.editors.forEach(patchEditor);
+        /* hugerte 1.0.x: the editor list is EditorManager.get() (no args).
+           The .editors array from the TinyMCE 6 docs does not exist in
+           this build, so referencing it throws a TypeError. */
+        function allEditors() {
+            try {
+                var eds = hugerte.EditorManager.get();
+                return eds || [];
+            } catch (err) { return []; }
+        }
+        var addHooked = false;
+        function initFix(pass) {
+            if (!window.hugerte || !hugerte.EditorManager) {
+                if (pass < 25) setTimeout(function () { initFix(pass + 1); }, 200);
+                return;
+            }
+            if (!addHooked) {
+                addHooked = true;
+                // Editors added later (cpage tab-add, mceAddEditor, ...).
                 hugerte.EditorManager.on('AddEditor', function (e) {
                     // Small delay to ensure the editor is fully initialized
                     setTimeout(function () { patchEditor(e.editor); }, 100);
                 });
-            } else { setTimeout(initFix, 200); }
+            }
+            allEditors().forEach(patchEditor);
+            // hugerte.init() can run just after this script (config script
+            // has a higher priority number); retry briefly - patchEditor is
+            // idempotent, so extra passes are harmless.
+            if (pass < 25) setTimeout(function () { initFix(pass + 1); }, 200);
         }
-        initFix();
+        initFix(0);
     })();
 
     // ULTIMATE safety net: form-level submit handler.
