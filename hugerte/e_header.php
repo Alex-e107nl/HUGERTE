@@ -18,12 +18,12 @@ e107::css('inline','
 	   Cap ALL dialogs (including width-md/width-lg variants used by
 	   the table plugin) at a compact 500px.  The skin sets 480px on
 	   the base rule, but width-md (800px) and width-lg (1200px) have
-	   higher specificity and would override it without !important. */
+	   higher specificity and would override it without !important. 
 	.tox .tox-dialog {
 		max-width: min(500px, 95vw) !important;
 		max-height: 90vh !important;
 	}
-
+*/
 	/* ── Media-manager dialog: larger, responsive, no scrollbars ────
 	   The .hugerte-media-dialog class is added by plugin.js (openMedia)
 	   to the .tox-dialog element after the dialog renders. */
