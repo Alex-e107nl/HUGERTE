@@ -312,6 +312,15 @@ class wysiwyg
 		$ret['autosave_interval']          = "3s";
 		$ret['autosave_prefix']            = "hugerte-autosave-{path}{query}-{id}-";
 
+		// Autoresize: the editor grows with its content instead of keeping a
+		// fixed height and scrolling (the autoresize plugin is listed in the
+		// template <plugins>). It starts at min_height, grows while you type,
+		// and scrolls once max_height is reached. Remove max_height to let it
+		// grow without limit.
+		$ret['min_height'] = 450;
+		$ret['max_height'] = 850;
+		$ret['autoresize_bottom_margin'] = 0;
+
 		// Emoticons: built-in emoticons plugin in "images" mode, fed by the e107
 		// emote configuration (same source as the old tinymce4 smileys plugin, so
 		// changes made by the emoticons plugin are picked up automatically).

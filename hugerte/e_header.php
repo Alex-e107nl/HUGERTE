@@ -23,7 +23,7 @@ e107::css('inline','
 		max-width: min(500px, 95vw) !important;
 		max-height: 90vh !important;
 	}
-*/
+	*/
 	/* ── Media-manager dialog: larger, responsive, no scrollbars ────
 	   The .hugerte-media-dialog class is added by plugin.js (openMedia)
 	   to the .tox-dialog element after the dialog renders. */

@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <hugerte name="Member" version="7">
-	<plugins>advlist anchor autolink emoticons fullscreen help image link lists media table quickbars searchreplace visualchars wordcount</plugins>
+	<plugins>advlist anchor autolink autoresize emoticons fullscreen help image link lists media table quickbars searchreplace visualchars wordcount</plugins>
 	<menubar>edit view insert format tools</menubar>
 	<toolbar>undo redo | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media table | e107-image e107-video e107-glyph e107-bbcode | emoticons | fullscreen</toolbar>
 	<toolbar_mode>sliding</toolbar_mode>

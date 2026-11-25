@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <hugerte name="Admin" version="7">
-	<plugins>advlist anchor autolink autosave charmap code codesample directionality emoticons fullscreen help image insertdatetime link lists media nonbreaking pagebreak preview quickbars searchreplace table template visualblocks visualchars wordcount</plugins>
+	<plugins>advlist anchor autolink autoresize autosave charmap code codesample directionality emoticons fullscreen help image insertdatetime link lists media nonbreaking pagebreak preview quickbars searchreplace table template visualblocks visualchars wordcount</plugins>
 	<menubar>file edit view insert format tools table help</menubar>
 	<toolbar>undo redo | blocks | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media table | e107-image e107-video e107-glyph e107-bbcode | emoticons codesample | code fullscreen preview | help</toolbar>
 	<toolbar_mode>sliding</toolbar_mode>
