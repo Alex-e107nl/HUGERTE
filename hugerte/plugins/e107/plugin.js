@@ -45,11 +45,11 @@
  *   2. The getContent() serializer STRIPS elements whose only text content
  *      is U+FEFF (zero-width no-break space).  The Ja() helper in the
  *      insertContent pipeline strips U+FEFF from the HTML string before
- *      parsing, and the DOMâ†’Node serializer drops text nodes that
+ *      parsing, and the DOM->Node serializer drops text nodes that
  *      become empty after stripping.
  *
- * Fix (verified in glyph_dom_test3.html â€“ all 7 tests pass):
- *   - Convert <i> â†’ <span> in prepareHtml().  <span> is NOT aliased by
+ * Fix (verified in glyph_dom_test3.html - all 7 tests pass):
+ *   - Convert <i> -> <span> in prepareHtml().  <span> is NOT aliased by
  *     the schema and FA CSS works identically with <span>.
  *   - Inject U+200B (zero-width space) into empty inline elements.
  *     Ja() only strips U+FEFF, NOT U+200B, so the element is
@@ -69,7 +69,6 @@
 
 	hugerte.PluginManager.add('e107', function (editor, url) {
 
-		console.log('=== HUGERTE E107 PLUGIN LOADED ===', editor.id);
 
 		// ------------------------------------------------------------------
 		// ITALIC FIX: override getContent() to convert <em> to <i>
@@ -88,12 +87,11 @@
 				var content = origGetContent(settings);
 				return emToI(content);
 			};
-			console.log('[hugerte e107] getContent() patched for em-to-i conversion, editor=' + editor.id);
 		})();
 
 
 		// ------------------------------------------------------------------
-		// STRIKETHROUGH FIX â€“ root cause
+		// STRIKETHROUGH FIX - root cause
 		//
 		// Re-register the 'strikethrough' format to use <span> with
 		// text-decoration:line-through instead of the built-in <s> tag.
@@ -119,7 +117,7 @@
 		});
 
 		// ------------------------------------------------------------------
-		// STRIKETHROUGH FIX â€“ normalise legacy <s> tags on load
+		// STRIKETHROUGH FIX - normalise legacy <s> tags on load
 		//
 		// When the editor loads saved content that still contains <s> tags
 		// (from before this fix), convert them to <span> so:
@@ -142,12 +140,12 @@
 					e.content = convertSToSpan(e.content);
 				}
 			} catch (err) {
-				console.warn('hugerte e107: BeforeSetContent <s>â†’<span> failed', err);
+				console.warn('hugerte e107: BeforeSetContent <s>-><span> failed', err);
 			}
 		});
 
 		// ------------------------------------------------------------------
-		// STRIKETHROUGH FIX â€“ safety net on save
+		// STRIKETHROUGH FIX - safety net on save
 		//
 		// Convert any <s> tags that slipped through (e.g. pasted content,
 		// programmatic insertion) before the content leaves the editor.
@@ -185,7 +183,6 @@
 					return '';
 				}
 				var resp = xhr.responseText;
-				console.log('hugerte e107: toHtml response [' + resp.length + ' chars]:', resp.substring(0, 300));
 				return resp;
 			} catch (err) {
 				console.error('hugerte e107: toHtml - XHR failed', err);
@@ -210,14 +207,14 @@
 		// ------------------------------------------------------------------
 		function prepareHtml(html) {
 			var out = String(html);
-			// 1) Normalize: single-quoted attrs â†’ double-quoted,
+			// 1) Normalize: single-quoted attrs -> double-quoted,
 			//    strip trailing whitespace before '>'.
 			//    (e107 toGlyph() emits <i class='fab fa-x' ></i>)
 			out = out.replace(/<(\w+)([^>]*)>/g, function (m, tag, attrs) {
 				attrs = attrs.replace(/'([^']*)'/g, '"$1"').replace(/\s+$/, '');
 				return '<' + tag + attrs + '>';
 			});
-			// 2) Convert <i> â†’ <span>.
+			// 2) Convert <i> -> <span>.
 			//    TinyMCE 6/7 schema aliases <i> to <em> during parse,
 			//    so the FA glyph tag gets silently renamed.  <span> is
 			//    not aliased and FA CSS works identically with it.
@@ -227,7 +224,7 @@
 			//    U+200B (zero-width space) inside them.
 			//    Ja() in the insertContent pipeline strips U+FEFF but
 			//    NOT U+200B, so the element survives getContent().
-			//    U+200B is invisible (zero-width) â€“ no visual impact.
+			//    U+200B is invisible (zero-width) - no visual impact.
 			out = out.replace(/<(\w+)(\s[^>]*)?>\s*<\/\1>/gi, function (m, tag, attrs) {
 				if (/^(span|em|strong|b|u|sub|sup|a)$/i.test(tag)) {
 					return '<' + tag + (attrs || '') + '>\u200B</' + tag + '>';
@@ -235,6 +232,15 @@
 				return m;
 			});
 			return out;
+		}
+
+		// Last block-level child of the editor body (null if there is none).
+		function lastBlockEl(ed) {
+			var last = ed.getBody().lastElementChild;
+			while (last && !ed.dom.isBlock(last)) {
+				last = last.previousElementSibling;
+			}
+			return last;
 		}
 
 		// Make sure the editor has a valid selection inside the body.
@@ -248,11 +254,8 @@
 			if (!rng || !rng.startContainer || !body.contains(rng.startContainer)) {
 				// No valid range: put the caret at the end of the last
 				// block-level element (not at the end of <body> itself).
-				var last = body.lastElementChild;
-				while (last && !ed.dom.isBlock(last)) {
-					last = last.previousElementSibling;
-				}
 				rng = doc.createRange();
+				var last = lastBlockEl(ed);
 				if (last) {
 					rng.selectNodeContents(last);
 				} else {
@@ -274,11 +277,8 @@
 			var sel = doc.getSelection();
 			var rng = (sel && sel.rangeCount > 0) ? sel.getRangeAt(0) : null;
 			if (!rng || !rng.startContainer || !body.contains(rng.startContainer)) {
-				var last = body.lastElementChild;
-				while (last && !ed.dom.isBlock(last)) {
-					last = last.previousElementSibling;
-				}
 				rng = doc.createRange();
+				var last = lastBlockEl(ed);
 				if (last) {
 					rng.selectNodeContents(last);
 				} else {
@@ -288,10 +288,7 @@
 			}
 			// Caret sitting directly in <body> -> move into last block
 			if (rng.startContainer === body) {
-				var lastB = body.lastElementChild;
-				while (lastB && !ed.dom.isBlock(lastB)) {
-					lastB = lastB.previousElementSibling;
-				}
+				var lastB = lastBlockEl(ed);
 				if (lastB) {
 					rng = doc.createRange();
 					rng.selectNodeContents(lastB);
@@ -343,10 +340,8 @@
 			}
 
 			// --- Attempt 2: direct DOM insertion (bypasses the model) ---
-			console.log('hugerte e107: insertContent dropped content, DOM fallback. editor=' + ed.id +
-				', sel=' + selState +
-				', isEditable=' + (function () { try { return ed.selection.isEditable(); } catch (e) { return 'n/a'; } })() +
-				', prepared=[' + prepared + ']');
+			console.warn('hugerte e107: insertContent dropped content, DOM fallback. editor=' + ed.id +
+				', sel=' + selState);
 			try {
 				domInsertFallback(ed, prepared);
 			} catch (err) {
@@ -377,8 +372,7 @@
 			if (window.__hugerte_media_editor !== editor.id) return;
 
 			if (e.data.type === 'hugerte-media-insert') {
-				console.log('hugerte e107: media insert -> editor=' + editor.id +
-					', raw=[' + e.data.html + ']');
+				console.log('hugerte e107: media insert -> ' + editor.id);
 
 				// Close the dialog FIRST so the editor can regain focus.
 				// (insertContent while the modal holds focus can no-op.)

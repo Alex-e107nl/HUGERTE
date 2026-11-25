@@ -33,15 +33,20 @@ if(!defined('TINYMCE_DEBUG') && !defined('TINYMCE_UNIT_TEST'))
 }
 
 /**
- * Two Modes supported below going to and from the Tinymce wysiwyg editor.
- * 1) When the post_html pref is active - raw html is used in the editor and wrapped in [html] [/html] bbcodes in the background.
- * 2) When the post_html pref is disabled - bbcodes are used in the background and converted to html for the editor.
- * Tested extensively over 24 hours with Images - check with Cameron first if issues arise.
- * TODO Check with html5 tags active.
-*/
-class e107TinyMceParser
+ * BBCode <-> HTML bridge for the HugeRTE editor.
+ *
+ * Two modes (selected via the 'mode' POST parameter):
+ *   - tohtml:   stored BBCode/HTML -> the raw HTML the editor edits.
+ *               Used by the media-manager iframe insert and the BBCode toggle.
+ *   - tobbcode: editor HTML -> stored BBCode ([html]...[/html] wrap).
+ *               Used by the BBCode toggle on the way back to the editor.
+ *
+ * This endpoint is only reachable by users who may post HTML
+ * (see wysiwyg::isAllowed()), so the HTML it echoes back is always
+ * content the caller is already authorised to write.
+ */
+class e107HugerteParser
 {
-	protected $gzipCompression = false;
 	protected $postHtmlClass;
 
 	function __construct()
@@ -53,15 +58,8 @@ class e107TinyMceParser
 
 		$html = '';
 
-		if(defined('TINYMCE_DEBUG') || defined('TINYMCE_UNIT_TEST'))
-		{
-			$this->gzipCompression = false;
-		}
-
 		if(!empty($_GET['debug']) && getperms('0'))
 		{
-			$debug = true;  // For future use.
-
 			if(defined("TINYMCE_PARSER_DEBUG_TEXT"))
 			{
 				$text = TINYMCE_PARSER_DEBUG_TEXT;
@@ -80,10 +78,6 @@ TEMPL;
 			}
 			$_POST['content'] = $text;
 		}
-		else
-		{
-			$debug = false;
-		}
 
 		if($mode === 'tohtml')
 		{
@@ -94,23 +88,8 @@ TEMPL;
 			$html = $this->toDB($_POST['content']);
 		}
 
-		if($this->gzipCompression == true)
-		{
-			header('Content-Encoding: gzip');
-			$gzipoutput = gzencode($html,6);
-			header('Content-Length: '.strlen($gzipoutput));
-			echo $gzipoutput;
-		}
-		else
-		{
-			echo $html;
-		}
+		echo $html;
 
-	}
-
-	public function setHtmlClass($value)
-	{
-		$this->postHtmlClass = (int) $value;
 	}
 
 
@@ -125,9 +104,10 @@ TEMPL;
 			define('BOOTSTRAP', (int) $bs);
 		}
 
-		$content = stripslashes($content);
+		// No stripslashes(): the client sends URL-encoded form data (encodeURIComponent),
+		// which PHP decodes once, so the value arrives raw. stripslashes() would
+		// corrupt any legitimate backslash (code samples, Windows paths).
 
-		//	$content = e107::getBB()->htmltoBBcode($content);	//XXX This breaks inserted images from media-manager. :/
 		e107::getBB()->setClass($this->getMediaCategory());
 
 		if(check_class($this->postHtmlClass)) // raw HTML within [html] tags.
@@ -155,17 +135,11 @@ TEMPL;
 		}
 		else  // bbcode Mode.
 		{
-
-			// XXX @Cam this breaks new lines, currently we use \n instead [br]
-			//echo $tp->toHTML(str_replace("\n","",$content), true);
-
 			$content = str_replace("{e_BASE}",e_HTTP, $content); // We want {e_BASE} in the final data going to the DB, but not the editor.
 			$content = $tp->toHTML($content, true, 'WYSIWYG');
 			$content = str_replace(e_MEDIA_IMAGE,"{e_MEDIA_IMAGE}",$content);
 
-			$text = "";
-
-			$text .= $content;
+			$text = $content;
 		}
 
 
@@ -191,12 +165,11 @@ TEMPL;
 	}
 
 
-
 	function toDB($content)
 	{
 		e107::getBB()->setClass($this->getMediaCategory());
 
-		$content = stripslashes($content);
+		// No stripslashes() - see toHTML() for the rationale (value arrives raw).
 
 		if(check_class($this->postHtmlClass)) // Plain HTML mode.
 		{
@@ -205,7 +178,7 @@ TEMPL;
 
 			if(strip_tags($content, '<i>') == '&nbsp;') // Avoid this: [html]<p>&nbsp;</p>[/html]
 			{
-				exit;
+				return '';
 			}
 
 			$content = html_entity_decode(strtr($content, array('&lt;' => '&amp;lt;', '&gt;' => '&amp;gt;', '&amp;' => '&amp;amp;', '&quot;' => '&amp;quot;')));
@@ -232,107 +205,8 @@ TEMPL;
 		return isset($_SESSION['media_category']) ? $_SESSION['media_category'] : null;
 	}
 
-
-
-
-	/**
-	 * Rebuld <img> tags with modified thumbnail size.
-	 * @deprecated @see e107::getBB()->imgToBBcode();
-	 * @param $text
-	 * @return mixed
-	 */
-/*	function updateImg($text)
-	{
-		$tp = e107::getParser();
-		$arr = $tp->getTags($text,'img');
-
-		$srch = array("?","&");
-		$repl = array("\?","&amp;");
-
-		if(defined('TINYMCE_DEBUG'))
-		{
-			print_a($arr);
-		}
-
-		foreach($arr['img'] as $img)
-		{
-			if(substr($img['src'],0,4) == 'http' || strpos($img['src'], e_IMAGE_ABS.'emotes/')!==false) // dont resize external images or emoticons.
-			{
-				continue;
-			}
-
-
-			$regexp = '#(<img[^>]*src="'.str_replace($srch, $repl, $img['src']).'"[^>]*>)#';
-
-	//		$width 	= vartrue($img['width']) 	? ' width="'.$img['width'].'"' : '';
-	//		$height = vartrue($img['height'])	? ' height="'.$img['height'].'"' : '';
-	//		$style 	= vartrue($img['style'])	? ' style="'.$img['style'].'"' : '';
-	//		$class 	= vartrue($img['class'])	? ' class="'.$img['class'].'"' : '';
-	//		$alt 	= vartrue($img['alt'])		? ' alt="'.$img['alt'].'"' : '';
-	//		$title 	= vartrue($img['title'])	? ' title="'.$img['title'].'"' : '';
-	//		$srcset = vartrue($img['srcset'])   ? 'srcset="'.$img['srcset'].'"' : '';
-
-
-
-
-			$qr = $tp->thumbUrlDecode($img['src']);
-
-			if(substr($qr['src'],0,4)!=='http' && empty($qr['w']) && empty($qr['aw']))
-			{
-				$qr['w'] = $img['width'];
-				$qr['h'] = $img['height'];
-			}
-
-			$qr['ebase'] = true;
-
-		//	$src = e107::getParser()->thumbUrl($qr['src'],$qr);
-
-		//	$replacement = '<img src="'.$src.'" '.$srcset.$style.$alt.$title.$class.$width.$height.' />';
-
-			unset($img['src'],$img['srcset'],$img['@value'], $img['caption'], $img['alt']);
-
-			if(!empty($img['class']))
-			{
-				$tmp = explode(" ",$img['class']);
-				$cls = array();
-				foreach($tmp as $v)
-				{
-					if($v === 'img-rounded' || $v === 'rounded' || $v === 'bbcode' || $v === 'bbcode-img-news' || $v === 'bbcode-img')
-					{
-						continue;
-					}
-
-					$cls[] = $v;
-
-				}
-
-				if(empty($cls))
-				{
-					unset($img['class']);
-				}
-				else
-				{
-					$img['class'] = implode(" ",$cls);
-				}
-
-			}
-
-			$parms = !empty($img) ? ' '.str_replace('+', ' ', http_build_query($img,null, '&')) : "";
-
-			$code_text = str_replace($tp->getUrlConstants('raw'), $tp->getUrlConstants('sc'), $qr['src']);
-
-			$replacement = '[img'.$parms.']'.$code_text.'[/img]';
-
-			$text = preg_replace($regexp, $replacement, $text);
-
-		}
-
-		return $text;
-	}*/
-
-
 }
 
-$mce = new	e107TinyMceParser();
+$parser = new e107HugerteParser();
 
 

@@ -106,7 +106,7 @@ if ((e107::wysiwyg(null, true) === 'hugerte' && check_class($pref['post_html']))
        scrollbar on the right edge of the modal.  We hide it and let
        the inner content containers handle their own scrolling. */
     var st = document.createElement('style');
-    st.textContent = 'html { height: 100% !important; overflow: hidden !important; } body { height: 100% !important; overflow: hidden !important; }';
+    st.textContent = 'html { height: 100% !important; overflow: hidden !important; } body { height: 100% !important; overflow: scroll !important; }';
     document.head.appendChild(st);
 
     /* Show the save/cancel buttons (hidden by default in image.php) */
