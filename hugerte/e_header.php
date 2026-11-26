@@ -82,4 +82,16 @@ e107::css('inline','
 			max-height: 100vh !important;
 		}
 	}
+
+	/* Dark mode: the hugerte skins (oxide and oxide-dark) both hardcode
+	   the editor iframe to white - the dark skin only themes the toolbar
+	   and dialogs, never the document area. This makes the iframe
+	   background follow the e107 admin theme switch, i.e. the <html>
+	   data-bs-theme attribute the admin theme sets. The text color and
+	   body background inside the iframe are applied by the e_footer.php
+	   JS via the .hugerte-dark class (styles: editor.css).
+	   Colors: etabler admin dark theme (Tabler, slate base). */
+	html[data-bs-theme="dark"] .tox .tox-edit-area__iframe {
+		background-color: #1e293b !important;
+	}
 ');

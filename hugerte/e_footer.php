@@ -244,6 +244,98 @@ $(function() {
         initFix(0);
     })();
 
+    /* Dark mode sync: the e107 admin day/night switch sets
+       <html data-bs-theme=dark> - and the settings offcanvas applies it
+       WITHOUT a page reload, so the editor must re-theme on the fly.
+       The hugerte skins hardcode the edit area to white (oxide-dark
+       only themes the toolbar and dialogs), so:
+       - the iframe <body> gets .hugerte-dark (styles: editor.css)
+       - the oxide <-> oxide-dark skin CSS links are swapped, so the
+         toolbar and dialogs follow the admin theme as well. */
+    (function () {
+        var DARK_CLASS = 'hugerte-dark';
+
+        function adminDark() {
+            return document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        }
+
+        function eachEditor(fn) {
+            try {
+                if (!window.hugerte || !hugerte.EditorManager) { return; }
+                var eds = hugerte.EditorManager.get() || [];
+                for (var i = 0; i < eds.length; i++) { fn(eds[i]); }
+            } catch (err) { /* editors not ready yet */ }
+        }
+
+        /* Skin CSS is plain <link> tags: skin.min.css (toolbar and
+           dialogs) in the main document, content.min.css (edit area)
+           inside each editor iframe. */
+        function skinLinks(doc) {
+            var out = [];
+            var links = doc.querySelectorAll('link');
+            for (var i = 0; i < links.length; i++) {
+                var href = links[i].getAttribute('href') || '';
+                if (href.indexOf('/skins/ui/') !== -1) { out.push(links[i]); }
+            }
+            return out;
+        }
+
+        function swapSkin(links, marker, dark) {
+            for (var i = 0; i < links.length; i++) {
+                var href = links[i].getAttribute('href') || '';
+                if (href.indexOf(marker) === -1) { continue; }
+                if (dark && href.indexOf('/oxide/') !== -1) {
+                    links[i].setAttribute('href', href.replace('/oxide/', '/oxide-dark/'));
+                } else if (!dark && href.indexOf('/oxide-dark/') !== -1) {
+                    links[i].setAttribute('href', href.replace('/oxide-dark/', '/oxide/'));
+                }
+            }
+        }
+
+        function syncEditor(editor, dark) {
+            var doc = null;
+            try { doc = editor.getDoc(); } catch (err) { /* not ready */ }
+            if (!doc) { return; }
+            if (doc.body && doc.body.classList) {
+                doc.body.classList.toggle(DARK_CLASS, dark);
+            }
+            if (doc.head) {
+                swapSkin(skinLinks(doc), 'content.min.css', dark);
+            }
+        }
+
+        function syncAll() {
+            var dark = adminDark();
+            eachEditor(function (ed) { syncEditor(ed, dark); });
+            swapSkin(skinLinks(document), 'skin.min.css', dark);
+        }
+
+        var addHooked = false;
+        function first(pass) {
+            if (!addHooked && window.hugerte && hugerte.EditorManager) {
+                addHooked = true;
+                /* Editors created later (cpage tab-add, ...) */
+                hugerte.EditorManager.on('AddEditor', function (e) {
+                    setTimeout(function () { syncEditor(e.editor, adminDark()); }, 100);
+                });
+            }
+            syncAll();
+            /* hugerte.min.js can load just after this script; retry
+               briefly. syncAll() is idempotent, extra passes are free. */
+            if (pass < 25) { setTimeout(function () { first(pass + 1); }, 200); }
+        }
+        first(0);
+
+        /* Live switch: the admin settings offcanvas changes the
+           attribute without a page reload - catch it here. */
+        if (window.MutationObserver) {
+            new MutationObserver(syncAll).observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ['data-bs-theme']
+            });
+        }
+    })();
+
     // ULTIMATE safety net: form-level submit handler.
     // Runs in bubble phase (AFTER TinyMCE save() synced the textarea).
     // Directly converts <em> to <i> in all textarea values.

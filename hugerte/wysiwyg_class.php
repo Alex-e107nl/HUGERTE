@@ -28,7 +28,12 @@ class wysiwyg
 	{
 		$this->getConfig($config);
 		$text = "\n /* HugeRTE Config: ".$this->configName." */\n\n";
-		$text .= "window.__hugerte_dark = (document.documentElement.getAttribute('data-bs-theme') === 'dark') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);\n\n";
+		// Day/night follows the e107 admin theme switch ONLY: the etabler
+		// admin theme (js/admin/tabler-theme.js) sets <html data-bs-theme>
+		// from the ?theme= URL switch / localStorage 'tabler-theme'. The
+		// machine's color scheme is deliberately ignored - the editor
+		// mirrors the admin, nothing else.
+		$text .= "window.__hugerte_dark = document.documentElement.getAttribute('data-bs-theme') === 'dark';\n\n";
 		$text .= "hugerte.init({\n";
 
 		$text .= $this->config;

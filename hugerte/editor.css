@@ -55,3 +55,20 @@ div.clearfix { margin-bottom: 10px; }
    TinyMCE 6 indents every block by 3px for its label icon; this carries
    over the tinymce4 behaviour where divs stayed at the left edge. */
 .mce-visualblocks div:not([data-mce-bogus]) { margin-left: auto !important; }
+
+/* Dark mode - follows the e107 admin theme day/night switch.
+   The hugerte content skins never set a background or text color on
+   the editor body, and the admin switch changes the theme without a
+   page reload, so e_footer.php toggles .hugerte-dark on the iframe
+   <body> whenever <html data-bs-theme> changes. Colors match the
+   etabler admin dark theme (Tabler, slate base): surface #1e293b,
+   text #e2e8f0. Tweak to taste. */
+body.hugerte-dark {
+    background-color: #1e293b !important;
+    color: #e2e8f0 !important;
+}
+
+/* Placeholder hint (oxide skin uses a color tuned for white) */
+body.hugerte-dark[data-mce-placeholder]:not(.mce-visualblocks)::before {
+    color: rgba(226, 232, 240, 0.55) !important;
+}

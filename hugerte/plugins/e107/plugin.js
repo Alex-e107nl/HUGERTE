@@ -91,6 +91,95 @@
 
 
 		// ------------------------------------------------------------------
+		// ADMIN THEME SYNC (day/night) for the edit area + UI skin
+		//
+		// e107's etabler admin theme is the ONLY theme source: its
+		// js/admin/tabler-theme.js sets <html data-bs-theme="dark|light">
+		// from the ?theme= URL switch / localStorage 'tabler-theme'. The
+		// machine's color scheme is deliberately not used.
+		//
+		// Why this is needed: hugerte 1.0.15 skins hardcode a WHITE edit
+		// area in BOTH oxide and oxide-dark:
+		//   .tox .tox-edit-area__iframe { background-color: #fff }
+		// and neither content skin colors the iframe body. The 'skin'
+		// option can therefore never theme the edit area, so we do it:
+		//   - on init: a <style> tag in the content document sets the
+		//     body background/text color
+		//   - on admin theme change without a page reload (the offcanvas
+		//     radio uses history.pushState): a MutationObserver on
+		//     <html data-bs-theme> re-applies the content style AND swaps
+		//     the UI skin CSS link, so toolbar/dialogs follow too.
+		// ------------------------------------------------------------------
+		(function () {
+			function adminDark() {
+				return document.documentElement.getAttribute('data-bs-theme') === 'dark';
+			}
+
+			function syncContentTheme() {
+				var doc;
+				try { doc = editor.getDoc(); } catch (err) { return; }
+				if (!doc || !doc.body || !doc.head) { return; }
+				var tag = doc.getElementById('hugerte-e107-theme-sync');
+				if (!tag) {
+					tag = doc.createElement('style');
+					tag.id = 'hugerte-e107-theme-sync';
+					doc.head.appendChild(tag);
+				}
+				// Same colors as the hugerte.org dark demo content area.
+				tag.textContent = adminDark()
+					? 'body{background-color:#222!important;color:#ddd!important}'
+					: 'body{background-color:#fff!important;color:#000!important}';
+			}
+			editor.__hugerteSyncTheme = syncContentTheme;
+
+			// Global watcher: registered once per window, not per editor.
+			if (!window.__hugerteThemeWatcher) {
+				window.__hugerteThemeWatcher = true;
+
+				// Swap the loaded UI skin CSS (oxide <-> oxide-dark) so the
+				// toolbar and dialogs match the edit area after a live
+				// theme switch. The skin is chosen at init time by the
+				// config, so a live switch needs this href swap.
+				function syncUiSkin(dark) {
+					var links = document.querySelectorAll('link[href*="/skins/ui/"]');
+					for (var i = 0; i < links.length; i++) {
+						var href = links[i].getAttribute('href') || '';
+						if (href.indexOf('skin.min.css') === -1 &&
+						    href.indexOf('skin.shadowdom.min.css') === -1) {
+							continue;
+						}
+						// '/oxide/' cannot match inside '/oxide-dark/'.
+						if (dark && href.indexOf('/oxide/') !== -1) {
+							links[i].setAttribute('href', href.replace('/oxide/', '/oxide-dark/'));
+						} else if (!dark && href.indexOf('/oxide-dark/') !== -1) {
+							links[i].setAttribute('href', href.replace('/oxide-dark/', '/oxide/'));
+						}
+					}
+				}
+
+				if (typeof MutationObserver !== 'undefined') {
+					new MutationObserver(function () {
+						var dark = adminDark();
+						syncUiSkin(dark);
+						var eds;
+						try { eds = hugerte.EditorManager.get(); } catch (err) { return; }
+						for (var i = 0; i < eds.length; i++) {
+							if (typeof eds[i].__hugerteSyncTheme === 'function') {
+								eds[i].__hugerteSyncTheme();
+							}
+						}
+					}).observe(document.documentElement, {
+						attributes: true,
+						attributeFilter: ['data-bs-theme']
+					});
+				}
+			}
+
+			editor.on('init', syncContentTheme);
+		})();
+
+
+		// ------------------------------------------------------------------
 		// STRIKETHROUGH FIX - root cause
 		//
 		// Re-register the 'strikethrough' format to use <span> with
