@@ -4,7 +4,7 @@
 	<menubar>edit view insert format tools</menubar>
 	<toolbar>undo redo | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media table | e107-image e107-video e107-glyph e107-bbcode | emoticons | fullscreen</toolbar>
 	<toolbar_mode>sliding</toolbar_mode>
-	<external_plugins>e107</external_plugins>
+	
 	<image_advtab>true</image_advtab>
 	<media_dimensions>true</media_dimensions>
 	<convert_urls>false</convert_urls>
