@@ -12,6 +12,14 @@
 
 ---
 
+## Warning / Disclaimer
+
+Please note! Although we have made every effort and conducted extensive testing, 
+you must ALWAYS create a system backup before applying our code. We are under no 
+circumstances responsible for any damage or data loss resulting from the use of 
+our code. It is impossible to test every possible combination of systems, CMS 
+versions, servers, and PHP versions currently in use.
+
 ## Why this plugin?
 
 The old `tinymce4` plugin loaded **TinyMCE 4.9.11 from a public CDN** — an end-of-life
