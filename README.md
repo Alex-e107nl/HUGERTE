@@ -91,9 +91,9 @@ the old plugin, adapted to the TinyMCE 6/7 API and e107 2.x core:
    - The setup class (`hugerte_setup.php`) registers the plugin in the core
      `e_parse_list` preference automatically.
 
-3. **Select the editor**:
-   - *Admin → Site Settings* → **WYSIWYG Editor** → choose **HugeRTE** → save
-   - (The `default` keyword in `plugin.xml` also prepends it to the editor list.)
+3. **Select the WYSIWYG editor**:
+   - *Admin → Preferences* → content editor * → *Enable WYSIWYG textareas** → save
+   - (Uninstall all other editors to use the hugerte editor plugin)
 
 4. **Configure** (optional):
    - *Admin → Plugins → Hugerte → Configure* — set the 5 plugin prefs and use the
